@@ -17,16 +17,16 @@ import edgetpu.detection.engine
 
 class tpu_detector:
 
-    def __init__(self, model, labels, threshold=0.5, device_path=None, compressed=False):
+    def __init__(self, model, labels, threshold=0.5, device_path=None, compressed=False, InputStream="/input", TargetLabels=[]):
         self.bridge = CvBridge()
         rospy.loginfo("Loading model {}".format(model))
 
         self.compressed = compressed
 
         if self.compressed:
-            self.image_sub = rospy.Subscriber("input", CompressedImage, self.callback, queue_size=1)
+            self.image_sub = rospy.Subscriber(InputStream, CompressedImage, self.callback, queue_size=1)
         else:
-            self.image_sub = rospy.Subscriber("input", Image, self.callback, queue_size=1)
+            self.image_sub = rospy.Subscriber(InputStream, Image, self.callback, queue_size=1)
 
         self.threshold = threshold
         self.engine = edgetpu.detection.engine.DetectionEngine(model, device_path)
@@ -55,57 +55,57 @@ class tpu_detector:
         now = rospy.get_rostime()
 
         for detection in results:
-        
-            top_left, bottom_right = detection.bounding_box
-            min_x, min_y = top_left
-            max_x, max_y = bottom_right
-            
-            imheight, imwidth, _ = cv_image.shape
-            
-            min_x *= imwidth
-            max_x *= imwidth
-            min_y *= imheight
-            max_y *= imheight
-            
-            centre_x = (max_x+min_x)/2.0
-            centre_y = (max_y+min_y)/2.0
-            height = max_y-min_y
-            width = max_x-min_x
-            
-            if height <=0 or width <= 0:
-              continue
-            
-            bbox = BoundingBox2D()
-            bbox.center.x = centre_x
-            bbox.center.y = centre_y
-            bbox.size_x = width
-            bbox.size_y = height
-            
-            hypothesis = ObjectHypothesisWithPose()
-            hypothesis.id = detection.label_id
-            hypothesis.score = detection.score
-            hypothesis.pose.pose.position.x = centre_x
-            hypothesis.pose.pose.position.y = centre_y
+            if detection.label_id in TargetLabels:
+                top_left, bottom_right = detection.bounding_box
+                min_x, min_y = top_left
+                max_x, max_y = bottom_right
+                
+                imheight, imwidth, _ = cv_image.shape
+                
+                min_x *= imwidth
+                max_x *= imwidth
+                min_y *= imheight
+                max_y *= imheight
+                
+                centre_x = (max_x+min_x)/2.0
+                centre_y = (max_y+min_y)/2.0
+                height = max_y-min_y
+                width = max_x-min_x
+                
+                if height <=0 or width <= 0:
+                continue
+                
+                bbox = BoundingBox2D()
+                bbox.center.x = centre_x
+                bbox.center.y = centre_y
+                bbox.size_x = width
+                bbox.size_y = height
+                
+                hypothesis = ObjectHypothesisWithPose()
+                hypothesis.id = detection.label_id
+                hypothesis.score = detection.score
+                hypothesis.pose.pose.position.x = centre_x
+                hypothesis.pose.pose.position.y = centre_y
 
-            crop = cv_image[int(min_y):int(max_y), int(min_x):int(max_x)].astype('uint8')
-            #crop_msg = self.bridge.cv2_to_imgmsg(crop, encoding="rgb8")
+                crop = cv_image[int(min_y):int(max_y), int(min_x):int(max_x)].astype('uint8')
+                #crop_msg = self.bridge.cv2_to_imgmsg(crop, encoding="rgb8")
 
-            res, buffer = cv2.imencode(".png", crop)
+                res, buffer = cv2.imencode(".png", crop)
 
-            instance = Detection2D()
-            instance.header.stamp = now
-            instance.header.frame_id = data.header.frame_id
-            instance.results.append(hypothesis)
-            instance.bbox = bbox
-            instance.source_img_compressed.data = np.array(buffer).tostring()
-            instance.source_img_compressed.header.frame_id = data.header.frame_id
-            instance.source_img_compressed.header.stamp = now
+                instance = Detection2D()
+                instance.header.stamp = now
+                instance.header.frame_id = data.header.frame_id
+                instance.results.append(hypothesis)
+                instance.bbox = bbox
+                instance.source_img_compressed.data = np.array(buffer).tostring()
+                instance.source_img_compressed.header.frame_id = data.header.frame_id
+                instance.source_img_compressed.header.stamp = now
 
-            detections.detections.append(instance)
+                detections.detections.append(instance)
 
-            rospy.loginfo("Detected: {}".format(detection.label_id))
+                rospy.loginfo("Detected: {}".format(detection.label_id))
             
-        if len(results) > 0:
+        if len(detections.detections) > 0:
             self.detection_pub.publish(detections)
         
         rospy.logdebug("%.2f ms" % self.engine.get_inference_time())
@@ -119,8 +119,10 @@ def main(args):
     compressed = rospy.get_param('~compressed')
     threshold = rospy.get_param('~threshold', default=0.5)
     device_path = rospy.get_param('~device_path', default=None)
+    input_stream = rospy.get_param('~input_stream', default="/input")
+    target_labels = rospy.get_param('~target_labels', default=[])
 
-    detector = tpu_detector(model_path, label_path, threshold, device_path, compressed)
+    detector = tpu_detector(model_path, label_path, threshold, device_path, compressed, input_stream, target_labels)
 
     try:
         rospy.spin()
