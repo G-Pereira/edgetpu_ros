@@ -56,7 +56,7 @@ class tpu_detector:
         now = rospy.get_rostime()
 
         for detection in results:
-            if detection.label_id in self.target_labels:
+            if str(detection.label_id) in self.target_labels:
                 top_left, bottom_right = detection.bounding_box
                 min_x, min_y = top_left
                 max_x, max_y = bottom_right
