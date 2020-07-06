@@ -73,7 +73,7 @@ class tpu_detector:
                 width = max_x-min_x
                 
                 if height <=0 or width <= 0:
-                continue
+                    continue
                 
                 bbox = BoundingBox2D()
                 bbox.center.x = centre_x
