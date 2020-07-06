@@ -98,9 +98,9 @@ class tpu_detector:
                 instance.header.frame_id = data.header.frame_id
                 instance.results.append(hypothesis)
                 instance.bbox = bbox
-                instance.source_img_compressed.data = np.array(buffer).tostring()
-                instance.source_img_compressed.header.frame_id = data.header.frame_id
-                instance.source_img_compressed.header.stamp = now
+                instance.source_img.data = np.array(buffer).tostring()
+                instance.source_img.header.frame_id = data.header.frame_id
+                instance.source_img.header.stamp = now
 
                 detections.detections.append(instance)
 
