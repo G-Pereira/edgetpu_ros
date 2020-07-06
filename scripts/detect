@@ -17,22 +17,23 @@ import edgetpu.detection.engine
 
 class tpu_detector:
 
-    def __init__(self, model, labels, threshold=0.5, device_path=None, compressed=False, InputStream="/input", TargetLabels=[]):
+    def __init__(self, model, labels, threshold=0.5, device_path=None, compressed=False, input_stream="/input", target_labels=[]):
         self.bridge = CvBridge()
         rospy.loginfo("Loading model {}".format(model))
 
         self.compressed = compressed
 
         if self.compressed:
-            self.image_sub = rospy.Subscriber(InputStream, CompressedImage, self.callback, queue_size=1)
+            self.image_sub = rospy.Subscriber(input_stream, CompressedImage, self.callback, queue_size=1)
         else:
-            self.image_sub = rospy.Subscriber(InputStream, Image, self.callback, queue_size=1)
+            self.image_sub = rospy.Subscriber(input_stream, Image, self.callback, queue_size=1)
 
         self.threshold = threshold
         self.engine = edgetpu.detection.engine.DetectionEngine(model, device_path)
         rospy.loginfo("Engine loaded")
         self.load_labels(labels)
         self.detection_pub = rospy.Publisher('detections', Detection2DArray, queue_size=1)
+        self.target_labels = target_labels
 
     def load_labels(self, labels):
         with open(labels, 'r', encoding="utf-8") as f:
@@ -55,7 +56,7 @@ class tpu_detector:
         now = rospy.get_rostime()
 
         for detection in results:
-            if detection.label_id in TargetLabels:
+            if detection.label_id in self.target_labels:
                 top_left, bottom_right = detection.bounding_box
                 min_x, min_y = top_left
                 max_x, max_y = bottom_right
