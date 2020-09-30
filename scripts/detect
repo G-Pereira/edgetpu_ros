@@ -109,14 +109,14 @@ class tpu_detector:
 
                 rospy.loginfo("Detected: {}".format(detection.label_id))
             
-        if len(results.detections) > 0:
+        if len(detections.detections) > 0:
             self.detection_pub.publish(detections)
 
             metric = NetMetric()
             metric.id = 2
             metric.seq = 0
             metric.latency = self.engine.get_inference_time()*1000000
-            metric.size = len(results.detections)
+            metric.size = len(detections.detections)
             metric.distance = 0
             self.metric_pub.publish(metric)
 
