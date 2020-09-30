@@ -128,7 +128,7 @@ def main(args):
     
     model_path = rospy.get_param('~model_path')
     label_path = rospy.get_param('~label_path')
-    compressed = rospy.get_param('~compressed')
+    compressed = rospy.get_param('~compressed', default=False)
     threshold = rospy.get_param('~threshold', default=0.5)
     device_path = rospy.get_param('~device_path', default=None)
     input_stream = rospy.get_param('~input_stream', default="/input")
