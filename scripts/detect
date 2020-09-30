@@ -35,6 +35,7 @@ class tpu_detector:
         rospy.loginfo("Engine loaded")
         self.load_labels(labels)
         self.detection_pub = rospy.Publisher('detections', Detection2DArray, queue_size=1)
+        self.metric_pub = rospy.Publisher('netmetric', NetMetric, queue_size=1)
         self.target_labels = target_labels
 
     def load_labels(self, labels):
