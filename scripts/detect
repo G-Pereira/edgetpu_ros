@@ -53,7 +53,7 @@ class tpu_detector:
         except CvBridgeError as e:
             rospy.logerr(e)
 
-        results = self.engine.DetectWithImage(PIL.Image.fromarray(cv_image), top_k=1, threshold=self.threshold, keep_aspect_ratio=True, relative_coord=True)
+        results = self.engine.DetectWithImage(PIL.Image.fromarray(cv_image), top_k=50, threshold=self.threshold, keep_aspect_ratio=True, relative_coord=True)
         
         detections = Detection2DArray()
         now = rospy.get_rostime()
